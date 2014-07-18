@@ -31,14 +31,13 @@
 # docs and latest version available for download at
 # http://github.com/rsgalloway/dropcam
 # ---------------------------------------------------------------------------------------------
-
-from distutils.core import setup
+from setuptools import setup, find_packages
 setup(
     name='dropcam',
     version='0.2.0',
+    packages = find_packages(),
+    scripts = ['dropcam.py'],
     description='Unofficial Dropcam Python API.',
-    author='Ryan Galloway',
-    author_email='ryan@rsgalloway.com',
-    url='http://github.com/rsgalloway/dropcam',
+    url='http://github.com/lmccart/dropcam',
     py_modules=['dropcam'],
 )
