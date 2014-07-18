@@ -38,8 +38,11 @@ import time
 import logging
 import urllib2
 import cookielib
-import simplejson as json
+import json
 from urllib import urlencode
+import datetime
+from pytz import timezone
+import glob
 
 __doc__ = """
 Unofficial Dropcam Python API.
@@ -81,8 +84,6 @@ class Dropcam(object):
     CAMERAS_UPDATE =  "/".join([API_BASE, API_PATH, "cameras.update"])
     CAMERAS_GET_VISIBLE =  "/".join([API_BASE, API_PATH, "cameras.get_visible"])
     CAMERAS_GET_IMAGE_PATH = "/".join([API_BASE, API_PATH, "cameras.get_image"])
-    EVENT_PATH =  "/".join([NEXUS_BASE, "get_cuepoint"])
-    EVENT_GET_CLIP_PATH = "/".join([NEXUS_BASE, "get_event_clip"])
 
     def __init__(self, username, password):
         """
@@ -117,14 +118,6 @@ class Dropcam(object):
                 cameras.append(Camera(self, params))
         return cameras
 
-class Event(object):
-    def __init__(self, camera, params):
-        """
-        :param params: Dictionary of dropcam event attributes.
-        """
-        self.camera = camera
-        self.__dict__.update(params)
-
 class Camera(object):
     def __init__(self, dropcam, params):
         """
@@ -135,25 +128,6 @@ class Camera(object):
         self.dropcam = dropcam
         self.__dict__.update(params)
     
-    def events(self, start, end=None):
-        """
-        Returns a list of camera events for a given time period:
-
-        :param start: start time in seconds since epoch
-        :param end: end time in seconds since epoch (defaults to current time)
-        :returns: list of Event class objects
-        """
-        start = int(start)
-        if end is None:
-            end = int(time.time())
-        events = []
-        params = dict(uuid=self.uuid, start_time=start, end_time=end, human=True)
-        response = _request(Dropcam.EVENT_PATH, params, self.dropcam.cookie)
-        items = json.load(response)
-        for item in items:
-            events.append(Event(self, item))
-        return events
-
     def get_image(self, width=720, seconds=None):
         """
         Requests a camera image, returns response object.
@@ -194,13 +168,38 @@ class Camera(object):
         f.close()
 
 if __name__ == "__main__":
+    fps = 30
     d = Dropcam(os.getenv("DROPCAM_USERNAME"), 
                 os.getenv("DROPCAM_PASSWORD"))
     try:
-        for i, cam in enumerate(d.cameras()):
-            print "saving image on", cam.title
-            cam.save_image("dropcam.%d.jpg" % i)
-            s = int(time.time() - (60 * 60 * 24 * 7))
-            print cam.events(s)
+        if len(d.cameras()) > 0:
+            cam = d.cameras()[0]
+            print "saving images for", cam.title
+
+            for f in glob.glob(os.path.join('watching/', '*.mov')):
+                f = f[9:-4]
+                ind = f.index('+')
+                dur = f[ind+1:]
+                dt = f[:ind-1]
+                dt = datetime.datetime.strptime(dt, '%Y-%B-%d %H %M %S') #convert string
+                dt = dt.replace(tzinfo=timezone('US/Eastern')) # add tz
+                print dt
+
+                fname = f.replace(' ', '_')
+                os.mkdir('imgs/%s' % fname)
+
+                epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone('UTC'))
+                delta = dt - epoch
+                secs = float(delta.total_seconds())
+                
+                i = 0
+                while i < int(dur):
+                    j = 0
+                    while j < fps:
+                        cam.save_image("imgs/%s/%d.jpg" % (fname,i*fps+j), 720, secs)
+                        secs += 1.0/fps
+                        j += 1
+                        print secs
+                    i += 1
     except Exception, err:
         print err
