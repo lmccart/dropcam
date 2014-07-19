@@ -26,11 +26,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# ---------------------------------------------------------------------------------------------
-# docs and latest version available for download at
-# http://github.com/rsgalloway/dropcam
-# ---------------------------------------------------------------------------------------------
 
 import os
 import sys
@@ -84,7 +79,9 @@ class Dropcam(object):
     CAMERAS_UPDATE =  "/".join([API_BASE, API_PATH, "cameras.update"])
     CAMERAS_GET_VISIBLE =  "/".join([API_BASE, API_PATH, "cameras.get_visible"])
     CAMERAS_GET_IMAGE_PATH = "/".join([API_BASE, API_PATH, "cameras.get_image"])
-
+    CAMERAS_CREATE_CLIP_PATH = "/".join([API_BASE, API_PATH, "videos.request"])
+    CAMERAS_DELETE_CLIP_PATH = "/".join([API_BASE, API_PATH, "videos.delete"])
+    CAMERAS_GET_ALL_CLIPS_PATH = "/".join([API_BASE, API_PATH, "videos.get_owned"])
     def __init__(self, username, password):
         """
         Creates a new dropcam API instance.
@@ -128,6 +125,98 @@ class Camera(object):
         self.dropcam = dropcam
         self.__dict__.update(params)
     
+    def create_clip(self, width=720, start=None, length=None, title=None):
+        """
+        Requests a camera video, returns response object.
+        
+        :param width: image width or X resolution
+        :param start: time of image capture (in seconds from epoch)
+        :param length: length of image capture (in seconds)
+        :param title: title of clip
+        :returns: response object
+        :raises: ConnectionError
+        """
+        params = dict(uuid=self.uuid, width=width, start_date=start, length=length, title=title)
+        if start:
+            params.update()
+        response = _request(Dropcam.CAMERAS_CREATE_CLIP_PATH, params, self.dropcam.cookie)
+
+        if (
+            response.code != 200
+            or not int(response.headers.getheader('content-length', 0))
+        ):
+            # Either a connection error or empty image sent with code 200
+            raise ConnectionError(
+                'Camera image is not available or camera is turned off',
+            )
+
+        return response
+
+    def save_all_clips(self, path):
+        """
+        Saves all saved video clips.
+        
+        :param path: base path to save clips to
+        """
+        user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1'
+        headers = { 'User-Agent' : user_agent }
+
+        items = self.get_all_clips()
+        for item in items:
+            link = 'http://%s/%s'%(item.get('server'),item.get('filename'))
+            #link = 'http://lauren-mccarthy.com'
+            clip_id = item.get('id')
+            title = item.get('title')
+            # print '%d:%s %s' % (clip_id, title, link)
+            print link
+
+            # download clip
+            # f = open(path+title+'.mp4', 'wb')
+            # req = urllib2.Request(link, None, headers)
+            # data = urllib2.urlopen(req)
+            # f.write(data.read())
+            # f.close()
+
+    def get_all_clips(self):
+        """
+        Requests a camera video, returns response object.
+        
+        :param start: time of image capture (in seconds from epoch)
+        :param length: length of image capture (in seconds)
+        :returns: array of clip items
+        :raises: ConnectionError
+        """
+        params = dict(uuid=self.uuid)
+        response = _request(Dropcam.CAMERAS_GET_ALL_CLIPS_PATH, params, self.dropcam.cookie)
+
+        data = json.load(response)
+        items = data.get('items')
+        return items
+    
+    def delete_all_clips(self):
+        """
+        Deletes all saved clips.
+        """
+        items = self.get_all_clips()
+        for item in items:
+            clip_id = item.get('id')
+            self.delete_clip(clip_id)
+    
+
+    def delete_clip(self, id):
+        """
+        Deletes a camera video, returns response object.
+        
+        :param id: id of video to delete
+        :returns: response object
+        :raises: ConnectionError
+        """
+        params = dict(uuid=self.uuid, id=id)
+        response = _request(Dropcam.CAMERAS_DELETE_CLIP_PATH, params, self.dropcam.cookie)
+
+        return response
+
+
     def get_image(self, width=720, seconds=None):
         """
         Requests a camera image, returns response object.
@@ -168,7 +257,6 @@ class Camera(object):
         f.close()
 
 if __name__ == "__main__":
-    fps = 30
     d = Dropcam(os.getenv("DROPCAM_USERNAME"), 
                 os.getenv("DROPCAM_PASSWORD"))
     try:
@@ -186,20 +274,15 @@ if __name__ == "__main__":
                 print dt
 
                 fname = f.replace(' ', '_')
-                os.mkdir('imgs/%s' % fname)
+                #os.mkdir('imgs/%s' % fname)
 
                 epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone('UTC'))
                 delta = dt - epoch
                 secs = float(delta.total_seconds())
                 
-                i = 0
-                while i < int(dur):
-                    j = 0
-                    while j < fps:
-                        cam.save_image("imgs/%s/%d.jpg" % (fname,i*fps+j), 720, secs)
-                        secs += 1.0/fps
-                        j += 1
-                        print secs
-                    i += 1
+                cam.create_clip(720, secs, dur, fname)
+                cam.save_all_clips('imgs/')
+                #cam.delete_all_clips()
+
     except Exception, err:
         print err

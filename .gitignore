@@ -2,3 +2,6 @@
 *.swp
 venv
 build
+watching/*.mp4
+imgs/*.mp4
+*.DS_Store
