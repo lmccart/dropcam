@@ -136,6 +136,7 @@ class Camera(object):
         :returns: response object
         :raises: ConnectionError
         '''
+        print 'length', length
         params = dict(uuid=self.uuid, width=width, start_date=start, length=length, title=title)
         if start:
             params.update()
@@ -275,14 +276,14 @@ if __name__ == '__main__':
                     dt = f[:ind-1]
                     dt = datetime.datetime.strptime(dt, '%Y-%B-%d %H %M %S') #convert string
                     dt = dt.replace(tzinfo=timezone('US/Eastern')) # add tz
-                    print dt
+                    print dt, dur
 
                     fname = f.replace(' ', '_')
                     #os.mkdir('imgs/%s' % fname)
 
                     epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone('UTC'))
                     delta = dt - epoch
-                    secs = float(delta.total_seconds())
+                    secs = float(delta.total_seconds()) - 60.0*60.0 # hack to line up one hour off
                     
                     cam.create_clip(720, secs, dur, fname)
                     cam.save_all_clips('imgs/')
