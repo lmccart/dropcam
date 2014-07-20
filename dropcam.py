@@ -16,7 +16,7 @@
 # may be used to endorse or promote products derived from this software
 # without specific prior written permission.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS'
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 # DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
@@ -39,56 +39,56 @@ import datetime
 from pytz import timezone
 import glob
 
-__doc__ = """
+__doc__ = '''
 Unofficial Dropcam Python API.
-"""
+'''
 
-__author__ = "Ryan Galloway <ryan@rsgalloway.com>"
+__author__ = 'Ryan Galloway <ryan@rsgalloway.com>'
 
 logging.basicConfig()
-log = logging.getLogger("dropcam")
+log = logging.getLogger('dropcam')
 
 class ConnectionError(IOError):
-    """
+    '''
     Exception used to indicate issues with connectivity or HTTP
     requests/responses
-    """
+    '''
 
 def _request(path, params, cookie=None):
-    """
+    '''
     Dropcam http request function.
-    """
-    request_url = "?".join([path, urlencode(params)])
+    '''
+    request_url = '?'.join([path, urlencode(params)])
     request = urllib2.Request(request_url)
     if cookie:
         request.add_header('cookie', cookie)
     try:
         return urllib2.urlopen(request)
     except urllib2.HTTPError:
-        log.error("Bad URL: %s" % request_url)
+        log.error('Bad URL: %s' % request_url)
         raise
 
 class Dropcam(object):
 
-    NEXUS_BASE = "https://nexusapi.dropcam.com"
-    API_BASE = "https://www.dropcam.com"
-    API_PATH = "api/v1"
+    NEXUS_BASE = 'https://nexusapi.dropcam.com'
+    API_BASE = 'https://www.dropcam.com'
+    API_PATH = 'api/v1'
 
-    LOGIN_PATH =  "/".join([API_BASE, API_PATH, "login.login"])
-    CAMERAS_GET =  "/".join([API_BASE, API_PATH, "cameras.get"])
-    CAMERAS_UPDATE =  "/".join([API_BASE, API_PATH, "cameras.update"])
-    CAMERAS_GET_VISIBLE =  "/".join([API_BASE, API_PATH, "cameras.get_visible"])
-    CAMERAS_GET_IMAGE_PATH = "/".join([API_BASE, API_PATH, "cameras.get_image"])
-    CAMERAS_CREATE_CLIP_PATH = "/".join([API_BASE, API_PATH, "videos.request"])
-    CAMERAS_DELETE_CLIP_PATH = "/".join([API_BASE, API_PATH, "videos.delete"])
-    CAMERAS_GET_ALL_CLIPS_PATH = "/".join([API_BASE, API_PATH, "videos.get_owned"])
+    LOGIN_PATH =  '/'.join([API_BASE, API_PATH, 'login.login'])
+    CAMERAS_GET =  '/'.join([API_BASE, API_PATH, 'cameras.get'])
+    CAMERAS_UPDATE =  '/'.join([API_BASE, API_PATH, 'cameras.update'])
+    CAMERAS_GET_VISIBLE =  '/'.join([API_BASE, API_PATH, 'cameras.get_visible'])
+    CAMERAS_GET_IMAGE_PATH = '/'.join([API_BASE, API_PATH, 'cameras.get_image'])
+    CAMERAS_CREATE_CLIP_PATH = '/'.join([API_BASE, API_PATH, 'videos.request'])
+    CAMERAS_DELETE_CLIP_PATH = '/'.join([API_BASE, API_PATH, 'videos.delete'])
+    CAMERAS_GET_ALL_CLIPS_PATH = '/'.join([API_BASE, API_PATH, 'videos.get_owned'])
     def __init__(self, username, password):
-        """
+        '''
         Creates a new dropcam API instance.
 
         :param username: Dropcam account username.
         :param password: Dropcam account password.
-        """
+        '''
         self.__username = username
         self.__password = password
         self.cookie = None
@@ -100,9 +100,9 @@ class Dropcam(object):
         self.cookie = response.headers.get('Set-Cookie')
 
     def cameras(self):
-        """
+        '''
         :returns: list of Camera class objects
-        """
+        '''
         if not self.cookie:
             self._login()
         cameras = []
@@ -117,16 +117,16 @@ class Dropcam(object):
 
 class Camera(object):
     def __init__(self, dropcam, params):
-        """
+        '''
         :param params: Dictionary of dropcam camera attributes.
         :returns: addinfourl file-like object
         :raises: urllib2.HTTPError, urllib2.URLError
-        """
+        '''
         self.dropcam = dropcam
         self.__dict__.update(params)
     
     def create_clip(self, width=720, start=None, length=None, title=None):
-        """
+        '''
         Requests a camera video, returns response object.
         
         :param width: image width or X resolution
@@ -135,7 +135,7 @@ class Camera(object):
         :param title: title of clip
         :returns: response object
         :raises: ConnectionError
-        """
+        '''
         params = dict(uuid=self.uuid, width=width, start_date=start, length=length, title=title)
         if start:
             params.update()
@@ -153,11 +153,11 @@ class Camera(object):
         return response
 
     def save_all_clips(self, path):
-        """
+        '''
         Saves all saved video clips.
         
         :param path: base path to save clips to
-        """
+        '''
         user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1'
         headers = { 'User-Agent' : user_agent }
 
@@ -178,14 +178,14 @@ class Camera(object):
             # f.close()
 
     def get_all_clips(self):
-        """
+        '''
         Requests a camera video, returns response object.
         
         :param start: time of image capture (in seconds from epoch)
         :param length: length of image capture (in seconds)
         :returns: array of clip items
         :raises: ConnectionError
-        """
+        '''
         params = dict(uuid=self.uuid)
         response = _request(Dropcam.CAMERAS_GET_ALL_CLIPS_PATH, params, self.dropcam.cookie)
 
@@ -194,9 +194,9 @@ class Camera(object):
         return items
     
     def delete_all_clips(self):
-        """
+        '''
         Deletes all saved clips.
-        """
+        '''
         items = self.get_all_clips()
         for item in items:
             clip_id = item.get('id')
@@ -204,13 +204,13 @@ class Camera(object):
     
 
     def delete_clip(self, id):
-        """
+        '''
         Deletes a camera video, returns response object.
         
         :param id: id of video to delete
         :returns: response object
         :raises: ConnectionError
-        """
+        '''
         params = dict(uuid=self.uuid, id=id)
         response = _request(Dropcam.CAMERAS_DELETE_CLIP_PATH, params, self.dropcam.cookie)
 
@@ -218,14 +218,14 @@ class Camera(object):
 
 
     def get_image(self, width=720, seconds=None):
-        """
+        '''
         Requests a camera image, returns response object.
         
         :param width: image width or X resolution
         :param seconds: time of image capture (in seconds from epoch)
         :returns: response object
         :raises: ConnectionError
-        """
+        '''
         params = dict(uuid=self.uuid, width=width)
         if seconds:
             params.update(time=seconds)
@@ -243,46 +243,49 @@ class Camera(object):
         return response
 
     def save_image(self, path, width=720, seconds=None):
-        """
+        '''
         Saves a camera image to disc. 
 
         :param path: file path to save image
         :param width: image width or X resolution
         :param seconds: time of image capture (in seconds from epoch)
         :raises: ConnectionError
-        """
-        f = open(path, "wb")
+        '''
+        f = open(path, 'wb')
         response = self.get_image(width, seconds)
         f.write(response.read())
         f.close()
 
-if __name__ == "__main__":
-    d = Dropcam(os.getenv("DROPCAM_USERNAME"), 
-                os.getenv("DROPCAM_PASSWORD"))
+if __name__ == '__main__':
+    d = Dropcam(os.getenv('DROPCAM_USERNAME'), 
+                os.getenv('DROPCAM_PASSWORD'))
     try:
         if len(d.cameras()) > 0:
             cam = d.cameras()[0]
-            print "saving images for", cam.title
+            print 'using camera ', cam.title
 
-            for f in glob.glob(os.path.join('watching/', '*.mov')):
-                f = f[9:-4]
-                ind = f.index('+')
-                dur = f[ind+1:]
-                dt = f[:ind-1]
-                dt = datetime.datetime.strptime(dt, '%Y-%B-%d %H %M %S') #convert string
-                dt = dt.replace(tzinfo=timezone('US/Eastern')) # add tz
-                print dt
+            if len(sys.argv[1:]) > 0 and sys.argv[1:][0] == 'delete':
+                print 'deleting all clips'
+                cam.delete_all_clips()
+            else:
+                for f in glob.glob(os.path.join('watching/', '*.mov')):
+                    f = f[9:-4]
+                    ind = f.index('+')
+                    dur = f[ind+1:]
+                    dt = f[:ind-1]
+                    dt = datetime.datetime.strptime(dt, '%Y-%B-%d %H %M %S') #convert string
+                    dt = dt.replace(tzinfo=timezone('US/Eastern')) # add tz
+                    print dt
 
-                fname = f.replace(' ', '_')
-                #os.mkdir('imgs/%s' % fname)
+                    fname = f.replace(' ', '_')
+                    #os.mkdir('imgs/%s' % fname)
 
-                epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone('UTC'))
-                delta = dt - epoch
-                secs = float(delta.total_seconds())
-                
-                cam.create_clip(720, secs, dur, fname)
-                cam.save_all_clips('imgs/')
-                #cam.delete_all_clips()
+                    epoch = datetime.datetime(1970, 1, 1, tzinfo=timezone('UTC'))
+                    delta = dt - epoch
+                    secs = float(delta.total_seconds())
+                    
+                    cam.create_clip(720, secs, dur, fname)
+                    cam.save_all_clips('imgs/')
 
     except Exception, err:
         print err

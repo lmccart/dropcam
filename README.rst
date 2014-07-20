@@ -21,5 +21,12 @@ Installation
   $ python setup.py install
   $ export DROPCAM_USERNAME=XXX
   $ export DROPCAM_PASSWORD=XXX
-  $ #place watching clips in watching/ dir
-  $ python dropcam.py #run
+
+
+Usage
+-----
+  #place watching clips in watching/ dir
+  $ python dropcam.py
+
+  #remove all clips created
+  $ python dropcam.py delete
